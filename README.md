@@ -1,4 +1,4 @@
-![](/Real%20Life%20Subtitles.png)
+![](/real-life-subtitles.png)
 
 # Real Life Subtitles
 
