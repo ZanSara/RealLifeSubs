@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Subtitles</title>
+    <title>Real Life Subtitles</title>
     <style>
         :root {
             --bg-color: #000;
@@ -16,7 +16,7 @@
         }
 
         [data-theme="light"] {
-            --bg-color: #fff;
+            --bg-color: #ffebdf;
             --text-color: #000;
             --container-bg: rgba(255, 255, 255, 0.9);
             --border-color: #ddd;
@@ -40,15 +40,22 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         .container {
+            width: 100%;
             max-width: 800px;
             margin: 0 auto;
+            padding: 20px;
             text-align: center;
+            flex: 1;
+            box-sizing: border-box;
         }
         .controls {
             margin-bottom: 30px;
@@ -73,6 +80,25 @@
             background-color: var(--input-bg);
             transform: scale(1.1);
         }
+        .github-link {
+            background: none;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+        .github-link:hover {
+            background-color: var(--input-bg);
+            transform: scale(1.1);
+        }
         .language-selector {
             margin: 10px 0;
         }
@@ -86,6 +112,28 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
+        .language-selector {
+            background: none;
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            min-width: 60px;
+            text-align: center;
+        }
+        .language-selector:hover {
+            background-color: var(--section-bg);
+            transform: scale(1.05);
+        }
+        .language-selector:focus {
+            outline: none;
+            border-color: var(--text-color);
+        }
         button {
             padding: 10px 20px;
             margin: 5px;
@@ -94,13 +142,56 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        .start-btn {
+        .toggle-btn {
             background-color: #28a745;
             color: white;
+            border: none;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
         }
-        .stop-btn {
+        .toggle-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .toggle-btn.recording {
             background-color: #dc3545;
-            color: white;
+        }
+        .sinewave {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+        .sinewave.active {
+            display: block;
+        }
+        .wave {
+            position: absolute;
+            width: 2px;
+            background: white;
+            border-radius: 1px;
+            animation: wave 0.8s ease-in-out infinite;
+        }
+        .wave:nth-child(1) { left: 20%; animation-delay: 0.1s; }
+        .wave:nth-child(2) { left: 30%; animation-delay: 0.2s; }
+        .wave:nth-child(3) { left: 40%; animation-delay: 0.3s; }
+        .wave:nth-child(4) { left: 50%; animation-delay: 0.4s; }
+        .wave:nth-child(5) { left: 60%; animation-delay: 0.5s; }
+        .wave:nth-child(6) { left: 70%; animation-delay: 0.6s; }
+        .wave:nth-child(7) { left: 80%; animation-delay: 0.7s; }
+        @keyframes wave {
+            0%, 100% { height: 20%; top: 40%; }
+            50% { height: 60%; top: 20%; }
         }
         .subtitles {
             background-color: var(--container-bg);
@@ -109,7 +200,6 @@
             min-height: 100px;
             font-size: 24px;
             line-height: 1.5;
-            border: 2px solid var(--border-color);
             transition: all 0.3s ease;
         }
         .status {
@@ -126,77 +216,215 @@
             opacity: 0.7;
             font-style: italic;
         }
-        .api-key-section {
-            margin: 15px 0;
-            padding: 10px;
-            background-color: var(--section-bg);
-            border-radius: 5px;
-            border: 1px solid var(--border-color);
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .header-icons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .key-icon {
+            background: none;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            cursor: pointer;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .key-icon:hover {
+            background-color: var(--input-bg);
+            transform: scale(1.1);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: var(--section-bg);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .close {
+            color: var(--status-color);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .close:hover {
+            color: var(--text-color);
+        }
+        .modal-title {
+            margin: 0 0 20px 0;
+            color: var(--text-color);
         }
         .api-key-input {
-            width: 300px;
-            padding: 8px 12px;
-            font-size: 14px;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
             border: 1px solid var(--border-color);
-            border-radius: 3px;
+            border-radius: 5px;
             background-color: var(--input-bg);
             color: var(--text-color);
-            margin: 5px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
             transition: all 0.3s ease;
         }
-        .api-key-label {
-            display: block;
-            margin-bottom: 5px;
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .save-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .save-btn:hover {
+            background-color: #218838;
+        }
+        .cancel-btn {
+            background-color: var(--border-color);
+            color: var(--text-color);
+        }
+        .cancel-btn:hover {
+            background-color: var(--input-bg);
+        }
+        .footer {
+            margin-top: auto;
+            margin-bottom: 0;
+            padding: 20px;
+            text-align: center;
             font-size: 14px;
             color: var(--status-color);
-            transition: color 0.3s ease;
+            background-color: #f5d5c8;
+            width: 100%;
+        }
+        [data-theme="dark"] .footer {
+            background-color: #2a1a1a;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme]) .footer {
+                background-color: #2a1a1a;
+            }
+        }
+        .footer a {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+        .footer a:hover {
+            opacity: 0.7;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Live Subtitles</h1>
-        <div class="controls">
-            <div class="theme-toggle-section">
+        <div class="header">
+            <div class="header-icons">
+                <a href="https://github.com/ZanSara/real-life-subtitles" target="_blank" title="View on GitHub">
+                    <img src="real-life-subtitles-icon.png" style="height: 80px;">
+                </a>
+            </div>
+            <div class="header-icons">
+                <select id="languageSelect" class="language-selector">
+                    <option value="ar">AR</option>
+                    <option value="zh">ZH</option>
+                    <option value="da">DA</option>
+                    <option value="nl">NL</option>
+                    <option value="en" selected>EN</option>
+                    <option value="fi">FI</option>
+                    <option value="fr">FR</option>
+                    <option value="de">DE</option>
+                    <option value="hi">HI</option>
+                    <option value="hu">HU</option>
+                    <option value="it">IT</option>
+                    <option value="ja">JA</option>
+                    <option value="ko">KO</option>
+                    <option value="no">NO</option>
+                    <option value="pl">PL</option>
+                    <option value="pt">PT</option>
+                    <option value="ru">RU</option>
+                    <option value="es">ES</option>
+                    <option value="sv">SV</option>
+                    <option value="tr">TR</option>
+                    <option value="uk">UK</option>
+                </select>
+                <button id="keyIcon" class="key-icon" title="API Key">🔑</button>
                 <button id="themeToggle" class="theme-toggle-btn">🌙</button>
             </div>
-            <div class="api-key-section">
-                <label class="api-key-label" for="apiKeyInput">Deepgram API Key:</label>
-                <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Enter your Deepgram API key">
-            </div>
-            <div class="language-selector">
-                <label for="languageSelect">Language: </label>
-                <select id="languageSelect">
-                    <option value="ar">Arabic</option>
-                    <option value="zh">Chinese (Mandarin)</option>
-                    <option value="da">Danish</option>
-                    <option value="nl">Dutch</option>
-                    <option value="en">English</option>
-                    <option value="fi">Finnish</option>
-                    <option value="fr">French</option>
-                    <option value="de">German</option>
-                    <option value="hi">Hindi</option>
-                    <option value="hu">Hungarian</option>
-                    <option value="it">Italian</option>
-                    <option value="ja">Japanese</option>
-                    <option value="ko">Korean</option>
-                    <option value="no">Norwegian</option>
-                    <option value="pl">Polish</option>
-                    <option value="pt">Portuguese</option>
-                    <option value="ru">Russian</option>
-                    <option value="es">Spanish</option>
-                    <option value="sv">Swedish</option>
-                    <option value="tr">Turkish</option>
-                    <option value="uk">Ukrainian</option>
-                </select>
-            </div>
-            <button id="startBtn" class="start-btn">Start Listening</button>
-            <button id="stopBtn" class="stop-btn" disabled>Stop Listening</button>
+        </div>
+        <div class="subtitles" id="subtitles">Subtitles will appear here...</div>
+        <div class="controls">
+            <button id="toggleBtn" class="toggle-btn">
+                <span class="mic-icon" style="margin: 0 0 4px 4px;">▶</span>
+                <div class="sinewave">
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                </div>
+            </button>
         </div>
         <div class="status" id="status">Ready to start</div>
-        <div class="subtitles" id="subtitles">Subtitles will appear here...</div>
     </div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <h3 class="modal-title">Deepgram API Key</h3>
+            <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Enter your Deepgram API key">
+            <div class="modal-buttons">
+                <button id="cancelBtn" class="modal-btn cancel-btn">Cancel</button>
+                <button id="saveBtn" class="modal-btn save-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <section>
+          © 2023 -2025 <a href="https://zansara.dev">Sara Zan</a>·
+          Powered by <a href="https://deepgram.com/" target="_blank" rel="noopener">Deepgram</a> &amp; <a href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener">Claude Code</a>.
+        </section>
+      </footer>
 
     <script>
         let mediaRecorder;
@@ -206,16 +434,39 @@
         let processor;
         let isRecording = false;
         
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
+        const toggleBtn = document.getElementById('toggleBtn');
         const status = document.getElementById('status');
         const subtitles = document.getElementById('subtitles');
         const languageSelect = document.getElementById('languageSelect');
         const apiKeyInput = document.getElementById('apiKeyInput');
         const themeToggle = document.getElementById('themeToggle');
+        const keyIcon = document.getElementById('keyIcon');
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const closeModal = document.getElementById('closeModal');
+        const saveBtn = document.getElementById('saveBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
         
-        startBtn.addEventListener('click', startListening);
-        stopBtn.addEventListener('click', stopListening);
+        toggleBtn.addEventListener('click', toggleListening);
+        
+        // Modal event listeners
+        keyIcon.addEventListener('click', openModal);
+        closeModal.addEventListener('click', closeModalHandler);
+        saveBtn.addEventListener('click', saveApiKey);
+        cancelBtn.addEventListener('click', closeModalHandler);
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === apiKeyModal) {
+                closeModalHandler();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && apiKeyModal.style.display === 'block') {
+                closeModalHandler();
+            }
+        });
         
         // Theme management
         function initializeTheme() {
@@ -233,10 +484,10 @@
         }
         
         function updateThemeIcon(theme) {
-            if (theme === 'light' || (!theme && !window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                themeToggle.textContent = '🌙';
-            } else {
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 themeToggle.textContent = '☀️';
+            } else {
+                themeToggle.textContent = '🌙';
             }
         }
         
@@ -276,18 +527,45 @@
         // Initialize theme on page load
         initializeTheme();
         
+        // Modal functions
+        function openModal() {
+            apiKeyModal.style.display = 'block';
+            apiKeyInput.focus();
+        }
+        
+        function closeModalHandler() {
+            apiKeyModal.style.display = 'none';
+        }
+        
+        function saveApiKey() {
+            const apiKey = apiKeyInput.value.trim();
+            localStorage.setItem('deepgram_api_key', apiKey);
+            updateKeyIcon();
+            closeModalHandler();
+        }
+        
+        function updateKeyIcon() {
+            const savedApiKey = localStorage.getItem('deepgram_api_key');
+            if (savedApiKey && savedApiKey.trim()) {
+                keyIcon.classList.add('has-key');
+            } else {
+                keyIcon.classList.remove('has-key');
+            }
+        }
+        
         // Load saved API key from localStorage
         function loadApiKey() {
             const savedApiKey = localStorage.getItem('deepgram_api_key');
             if (savedApiKey) {
                 apiKeyInput.value = savedApiKey;
             }
+            updateKeyIcon();
+            
+            // Open modal automatically if no API key
+            if (!savedApiKey || !savedApiKey.trim()) {
+                setTimeout(openModal, 500); // Small delay for better UX
+            }
         }
-        
-        // Save API key to localStorage when input changes
-        apiKeyInput.addEventListener('input', () => {
-            localStorage.setItem('deepgram_api_key', apiKeyInput.value);
-        });
         
         // Load API key on page load
         loadApiKey();
@@ -299,12 +577,21 @@
             }
         });
         
+        function toggleListening() {
+            if (isRecording) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+        
         async function startListening() {
             try {
                 // Check if API key is provided
-                const apiKey = apiKeyInput.value.trim();
-                if (!apiKey) {
+                const apiKey = localStorage.getItem('deepgram_api_key');
+                if (!apiKey || !apiKey.trim()) {
                     status.textContent = 'Please enter your Deepgram API key';
+                    openModal();
                     return;
                 }
                 
@@ -339,8 +626,11 @@
                 websocket.onopen = () => {
                     console.log('WebSocket connected');
                     status.textContent = `Connected to Deepgram (${languageSelect.options[languageSelect.selectedIndex].text})`;
-                    startBtn.disabled = true;
-                    stopBtn.disabled = false;
+                    const micIcon = toggleBtn.querySelector('.mic-icon');
+                    const sinewave = toggleBtn.querySelector('.sinewave');
+                    micIcon.style.display = 'none';
+                    sinewave.classList.add('active');
+                    toggleBtn.classList.add('recording');
                     languageSelect.disabled = true;
                     isRecording = true;
                     setupAudioProcessing();
@@ -443,8 +733,11 @@
                 websocket.close();
             }
             
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
+            const micIcon = toggleBtn.querySelector('.mic-icon');
+            const sinewave = toggleBtn.querySelector('.sinewave');
+            micIcon.style.display = 'block';
+            sinewave.classList.remove('active');
+            toggleBtn.classList.remove('recording');
             languageSelect.disabled = false;
             status.textContent = 'Stopped listening';
         }
