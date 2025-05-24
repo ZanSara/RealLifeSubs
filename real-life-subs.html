@@ -70,12 +70,39 @@
             opacity: 0.7;
             font-style: italic;
         }
+        .api-key-section {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        .api-key-input {
+            width: 300px;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #333;
+            border-radius: 3px;
+            background-color: #333;
+            color: #fff;
+            margin: 5px;
+        }
+        .api-key-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Live Subtitles</h1>
         <div class="controls">
+            <div class="api-key-section">
+                <label class="api-key-label" for="apiKeyInput">Deepgram API Key:</label>
+                <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Enter your Deepgram API key">
+            </div>
             <div class="language-selector">
                 <label for="languageSelect">Language: </label>
                 <select id="languageSelect">
@@ -109,8 +136,6 @@
     </div>
 
     <script>
-        const DEEPGRAM_API_KEY = "";
-        
         let mediaRecorder;
         let websocket;
         let audioStream;
@@ -123,9 +148,26 @@
         const status = document.getElementById('status');
         const subtitles = document.getElementById('subtitles');
         const languageSelect = document.getElementById('languageSelect');
+        const apiKeyInput = document.getElementById('apiKeyInput');
         
         startBtn.addEventListener('click', startListening);
         stopBtn.addEventListener('click', stopListening);
+        
+        // Load saved API key from localStorage
+        function loadApiKey() {
+            const savedApiKey = localStorage.getItem('deepgram_api_key');
+            if (savedApiKey) {
+                apiKeyInput.value = savedApiKey;
+            }
+        }
+        
+        // Save API key to localStorage when input changes
+        apiKeyInput.addEventListener('input', () => {
+            localStorage.setItem('deepgram_api_key', apiKeyInput.value);
+        });
+        
+        // Load API key on page load
+        loadApiKey();
         
         // Disable language selector when recording
         languageSelect.addEventListener('change', () => {
@@ -136,6 +178,13 @@
         
         async function startListening() {
             try {
+                // Check if API key is provided
+                const apiKey = apiKeyInput.value.trim();
+                if (!apiKey) {
+                    status.textContent = 'Please enter your Deepgram API key';
+                    return;
+                }
+                
                 status.textContent = 'Requesting microphone access...';
                 
                 // Get user media
@@ -151,7 +200,7 @@
                 // Connect to Deepgram WebSocket with selected language
                 const selectedLanguage = languageSelect.value;
                 const wsUrl = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&interim_results=true&smart_format=true&language=${selectedLanguage}`;
-                websocket = new WebSocket(wsUrl, ['token', DEEPGRAM_API_KEY]);
+                websocket = new WebSocket(wsUrl, ['token', apiKey]);
                 
                 websocket.onopen = () => {
                     console.log('WebSocket connected');
