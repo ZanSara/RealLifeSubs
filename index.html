@@ -297,6 +297,23 @@
             box-sizing: border-box;
             transition: all 0.3s ease;
         }
+        .language-modal-select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .language-modal-select:focus {
+            outline: none;
+            border-color: var(--text-color);
+        }
         .modal-buttons {
             display: flex;
             gap: 10px;
@@ -419,6 +436,40 @@
         </div>
     </div>
 
+    <!-- Language Selection Modal -->
+    <div id="languageModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Select Your Language</h3>
+            <p style="margin-bottom: 20px; color: var(--status-color); font-size: 14px;">Please choose your preferred language for speech recognition:</p>
+            <select id="languageModalSelect" class="language-modal-select">
+                <option value="ar">Arabic (AR)</option>
+                <option value="zh">Chinese (ZH)</option>
+                <option value="da">Danish (DA)</option>
+                <option value="nl">Dutch (NL)</option>
+                <option value="en" selected>English (EN)</option>
+                <option value="fi">Finnish (FI)</option>
+                <option value="fr">French (FR)</option>
+                <option value="de">German (DE)</option>
+                <option value="hi">Hindi (HI)</option>
+                <option value="hu">Hungarian (HU)</option>
+                <option value="it">Italian (IT)</option>
+                <option value="ja">Japanese (JA)</option>
+                <option value="ko">Korean (KO)</option>
+                <option value="no">Norwegian (NO)</option>
+                <option value="pl">Polish (PL)</option>
+                <option value="pt">Portuguese (PT)</option>
+                <option value="ru">Russian (RU)</option>
+                <option value="es">Spanish (ES)</option>
+                <option value="sv">Swedish (SV)</option>
+                <option value="tr">Turkish (TR)</option>
+                <option value="uk">Ukrainian (UK)</option>
+            </select>
+            <div class="modal-buttons">
+                <button id="saveLanguageBtn" class="modal-btn save-btn">Continue</button>
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <p>
           © 2023 - <span id="currentYear">2025</span> <a href="https://zansara.dev">Sara Zan</a>.
@@ -447,6 +498,9 @@
         const closeModal = document.getElementById('closeModal');
         const saveBtn = document.getElementById('saveBtn');
         const cancelBtn = document.getElementById('cancelBtn');
+        const languageModal = document.getElementById('languageModal');
+        const languageModalSelect = document.getElementById('languageModalSelect');
+        const saveLanguageBtn = document.getElementById('saveLanguageBtn');
         
         toggleBtn.addEventListener('click', toggleListening);
         
@@ -455,18 +509,27 @@
         closeModal.addEventListener('click', closeModalHandler);
         saveBtn.addEventListener('click', saveApiKey);
         cancelBtn.addEventListener('click', closeModalHandler);
+        saveLanguageBtn.addEventListener('click', saveLanguage);
         
         // Close modal when clicking outside
         window.addEventListener('click', (event) => {
             if (event.target === apiKeyModal) {
                 closeModalHandler();
             }
+            if (event.target === languageModal) {
+                closeLanguageModal();
+            }
         });
         
         // Close modal with Escape key
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && apiKeyModal.style.display === 'block') {
-                closeModalHandler();
+            if (event.key === 'Escape') {
+                if (apiKeyModal.style.display === 'block') {
+                    closeModalHandler();
+                }
+                if (languageModal.style.display === 'block') {
+                    closeLanguageModal();
+                }
             }
         });
         
@@ -542,11 +605,33 @@
             apiKeyModal.style.display = 'none';
         }
         
+        function openLanguageModal() {
+            languageModal.style.display = 'block';
+            languageModalSelect.focus();
+        }
+        
+        function closeLanguageModal() {
+            languageModal.style.display = 'none';
+        }
+        
+        function saveLanguage() {
+            const selectedLanguage = languageModalSelect.value;
+            localStorage.setItem('selected_language', selectedLanguage);
+            languageSelect.value = selectedLanguage;
+            closeLanguageModal();
+        }
+        
         function saveApiKey() {
             const apiKey = apiKeyInput.value.trim();
             localStorage.setItem('deepgram_api_key', apiKey);
             updateKeyIcon();
             closeModalHandler();
+            
+            // Check if language needs to be selected after API key is saved
+            const savedLanguage = localStorage.getItem('selected_language');
+            if (!savedLanguage) {
+                setTimeout(openLanguageModal, 300);
+            }
         }
         
         function updateKeyIcon() {
@@ -569,14 +654,32 @@
             // Open modal automatically if no API key
             if (!savedApiKey || !savedApiKey.trim()) {
                 setTimeout(openModal, 500); // Small delay for better UX
+            } else {
+                // If API key exists, check if language needs to be selected
+                const savedLanguage = localStorage.getItem('selected_language');
+                if (!savedLanguage) {
+                    setTimeout(openLanguageModal, 500);
+                }
             }
         }
         
-        // Load API key on page load
-        loadApiKey();
+        // Load saved language from localStorage
+        function loadLanguage() {
+            const savedLanguage = localStorage.getItem('selected_language');
+            if (savedLanguage) {
+                languageSelect.value = savedLanguage;
+            }
+        }
         
-        // Disable language selector when recording
+        // Load API key and language on page load
+        loadApiKey();
+        loadLanguage();
+        
+        // Save language selection and disable selector when recording
         languageSelect.addEventListener('change', () => {
+            const selectedLanguage = languageSelect.value;
+            localStorage.setItem('selected_language', selectedLanguage);
+            
             if (isRecording) {
                 status.textContent = 'Language changed. Please restart listening for the change to take effect.';
             }
@@ -620,9 +723,7 @@
                 const nova3Languages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'hi', 'nl'];
                 
                 // Use Nova-3 for supported languages, Nova-2 for all others
-                if (nova3Languages.includes(selectedLanguage)) {
-                    wsUrl += '';
-                } else {
+                if (!nova3Languages.includes(selectedLanguage)) {
                     wsUrl += '&model=nova-2';
                 }
                 
