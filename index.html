@@ -367,6 +367,32 @@
         .footer a:hover {
             opacity: 0.7;
         }
+        .subtitles-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        .clear-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--border-color);
+            border: none;
+            border-radius: 20%;
+            font-size: 16px;
+            cursor: pointer;
+            color: var(--text-color);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+        .clear-btn:hover {
+            background: var(--input-bg);
+            opacity: 1;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -405,7 +431,10 @@
                 <button id="themeToggle" class="theme-toggle-btn">🌙</button>
             </div>
         </div>
-        <div class="subtitles" id="subtitles">Press Play and speak!</div>
+        <div class="subtitles-container">
+            <div class="subtitles" id="subtitles">Press Play and speak!</div>
+            <button class="clear-btn" id="clearBtn" title="Clear subtitles">Clear</button>
+        </div>
         <div class="controls">
             <button id="toggleBtn" class="toggle-btn">
                 <span class="mic-icon" style="margin: 0 0 4px 4px;">▶</span>
@@ -501,6 +530,7 @@
         const languageModal = document.getElementById('languageModal');
         const languageModalSelect = document.getElementById('languageModalSelect');
         const saveLanguageBtn = document.getElementById('saveLanguageBtn');
+        const clearBtn = document.getElementById('clearBtn');
         
         toggleBtn.addEventListener('click', toggleListening);
         
@@ -510,6 +540,7 @@
         saveBtn.addEventListener('click', saveApiKey);
         cancelBtn.addEventListener('click', closeModalHandler);
         saveLanguageBtn.addEventListener('click', saveLanguage);
+        clearBtn.addEventListener('click', clearSubtitles);
         
         // Close modal when clicking outside
         window.addEventListener('click', (event) => {
@@ -850,6 +881,17 @@
         
         let currentTranscript = '';
         
+        function clearSubtitles() {
+            currentTranscript = '';
+            subtitles.innerHTML = 'Press Play and speak!';
+            updateClearButtonVisibility();
+        }
+        
+        function updateClearButtonVisibility() {
+            const hasText = currentTranscript.trim() !== '';
+            clearBtn.style.display = hasText ? 'flex' : 'none';
+        }
+        
         function updateSubtitles(transcript, isFinal) {
             if (isFinal) {
                 currentTranscript += ' ' + transcript;
@@ -861,10 +903,12 @@
                     currentTranscript = sentences.slice(-5).join('. ') + '.';
                     subtitles.innerHTML = `<span class="word">${currentTranscript}</span>`;
                 }
+                updateClearButtonVisibility();
             } else {
                 // Show interim results
                 const display = currentTranscript + ' ' + transcript;
                 subtitles.innerHTML = `<span class="word">${currentTranscript}</span> <span class="word interim">${transcript}</span>`;
+                updateClearButtonVisibility();
             }
         }
         
