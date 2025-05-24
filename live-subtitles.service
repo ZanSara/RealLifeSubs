@@ -1,0 +1,32 @@
+[Unit]
+Description=Live Subtitles Web Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/home/s/Projects/live-subtitles
+ExecStart=/usr/bin/python3 -m http.server 8080 --bind 0.0.0.0
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/home/s/Projects/live-subtitles
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target
