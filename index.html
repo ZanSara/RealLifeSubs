@@ -748,7 +748,7 @@
                 
                 // Connect to Deepgram WebSocket with selected language
                 const selectedLanguage = languageSelect.value;
-                let wsUrl = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&interim_results=true&smart_format=true&language=${selectedLanguage}`;
+                let wsUrl = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&interim_results=false&smart_format=true&language=${selectedLanguage}`;
                 
                 // Nova-3 supported languages (best performance)
                 const nova3Languages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'hi', 'nl'];
