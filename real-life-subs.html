@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Subtitles</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .controls {
+            margin-bottom: 30px;
+        }
+        .language-selector {
+            margin: 10px 0;
+        }
+        select {
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #333;
+            color: #fff;
+            cursor: pointer;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .stop-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .subtitles {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 100px;
+            font-size: 24px;
+            line-height: 1.5;
+            border: 2px solid #333;
+        }
+        .status {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #ccc;
+        }
+        .word {
+            margin: 0 2px;
+            transition: opacity 0.2s;
+        }
+        .interim {
+            opacity: 0.7;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Live Subtitles</h1>
+        <div class="controls">
+            <div class="language-selector">
+                <label for="languageSelect">Language: </label>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="ru">Russian</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                    <option value="zh">Chinese (Mandarin)</option>
+                    <option value="ar">Arabic</option>
+                    <option value="hi">Hindi</option>
+                    <option value="nl">Dutch</option>
+                    <option value="sv">Swedish</option>
+                    <option value="da">Danish</option>
+                    <option value="no">Norwegian</option>
+                    <option value="fi">Finnish</option>
+                    <option value="pl">Polish</option>
+                    <option value="tr">Turkish</option>
+                    <option value="uk">Ukrainian</option>
+                </select>
+            </div>
+            <button id="startBtn" class="start-btn">Start Listening</button>
+            <button id="stopBtn" class="stop-btn" disabled>Stop Listening</button>
+        </div>
+        <div class="status" id="status">Ready to start</div>
+        <div class="subtitles" id="subtitles">Subtitles will appear here...</div>
+    </div>
+
+    <script>
+        const DEEPGRAM_API_KEY = "936114ac748153e19eb55556479f2231ba55fb4b";
+        
+        let mediaRecorder;
+        let websocket;
+        let audioStream;
+        let audioContext;
+        let processor;
+        let isRecording = false;
+        
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const subtitles = document.getElementById('subtitles');
+        const languageSelect = document.getElementById('languageSelect');
+        
+        startBtn.addEventListener('click', startListening);
+        stopBtn.addEventListener('click', stopListening);
+        
+        // Disable language selector when recording
+        languageSelect.addEventListener('change', () => {
+            if (isRecording) {
+                status.textContent = 'Language changed. Please restart listening for the change to take effect.';
+            }
+        });
+        
+        async function startListening() {
+            try {
+                status.textContent = 'Requesting microphone access...';
+                
+                // Get user media
+                audioStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    } 
+                });
+                
+                // Connect to Deepgram WebSocket with selected language
+                const selectedLanguage = languageSelect.value;
+                const wsUrl = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&interim_results=true&smart_format=true&language=${selectedLanguage}`;
+                websocket = new WebSocket(wsUrl, ['token', DEEPGRAM_API_KEY]);
+                
+                websocket.onopen = () => {
+                    console.log('WebSocket connected');
+                    status.textContent = `Connected to Deepgram (${languageSelect.options[languageSelect.selectedIndex].text})`;
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    languageSelect.disabled = true;
+                    isRecording = true;
+                    setupAudioProcessing();
+                };
+                
+                websocket.onmessage = (event) => {
+                    console.log('Received:', event.data);
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.channel && data.channel.alternatives && data.channel.alternatives.length > 0) {
+                        const transcript = data.channel.alternatives[0].transcript;
+                        if (transcript) {
+                            console.log('Transcript:', transcript);
+                            updateSubtitles(transcript, data.is_final);
+                        }
+                    }
+                };
+                
+                websocket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    status.textContent = 'Connection error';
+                };
+                
+                websocket.onclose = (event) => {
+                    console.log('WebSocket closed:', event.code, event.reason);
+                    status.textContent = 'Connection closed';
+                    stopListening();
+                };
+                
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                status.textContent = 'Microphone access denied';
+            }
+        }
+        
+        function setupAudioProcessing() {
+            // Create AudioContext to process raw audio
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(audioStream);
+            
+            // Create a processor node
+            processor = audioContext.createScriptProcessor(1024, 1, 1);
+            
+            processor.onaudioprocess = (event) => {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    const inputBuffer = event.inputBuffer;
+                    const inputData = inputBuffer.getChannelData(0);
+                    
+                    // Resample to 16kHz if needed
+                    const targetSampleRate = 16000;
+                    const currentSampleRate = audioContext.sampleRate;
+                    let outputData = inputData;
+                    
+                    if (currentSampleRate !== targetSampleRate) {
+                        const ratio = currentSampleRate / targetSampleRate;
+                        const outputLength = Math.floor(inputData.length / ratio);
+                        outputData = new Float32Array(outputLength);
+                        
+                        for (let i = 0; i < outputLength; i++) {
+                            const srcIndex = Math.floor(i * ratio);
+                            outputData[i] = inputData[srcIndex];
+                        }
+                    }
+                    
+                    // Convert float32 to int16
+                    const int16Array = new Int16Array(outputData.length);
+                    for (let i = 0; i < outputData.length; i++) {
+                        const sample = Math.max(-1, Math.min(1, outputData[i]));
+                        int16Array[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    }
+                    
+                    if (int16Array.length > 0) {
+                        websocket.send(int16Array.buffer);
+                    }
+                }
+            };
+            
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+        }
+        
+        function stopListening() {
+            isRecording = false;
+            
+            if (processor) {
+                processor.disconnect();
+                processor = null;
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+            }
+            
+            if (websocket) {
+                websocket.close();
+            }
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            languageSelect.disabled = false;
+            status.textContent = 'Stopped listening';
+        }
+        
+        let currentTranscript = '';
+        
+        function updateSubtitles(transcript, isFinal) {
+            if (isFinal) {
+                currentTranscript += ' ' + transcript;
+                subtitles.innerHTML = `<span class="word">${currentTranscript.trim()}</span>`;
+                
+                // Keep only the last 5 sentences for display
+                const sentences = currentTranscript.split(/[.!?]+/).filter(s => s.trim());
+                if (sentences.length > 5) {
+                    currentTranscript = sentences.slice(-5).join('. ') + '.';
+                    subtitles.innerHTML = `<span class="word">${currentTranscript}</span>`;
+                }
+            } else {
+                // Show interim results
+                const display = currentTranscript + ' ' + transcript;
+                subtitles.innerHTML = `<span class="word">${currentTranscript}</span> <span class="word interim">${transcript}</span>`;
+            }
+        }
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isRecording) {
+                stopListening();
+            }
+        });
+    </script>
+</body>
+</html>
