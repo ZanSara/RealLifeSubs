@@ -126,6 +126,7 @@
                     <option value="pl">Polish</option>
                     <option value="tr">Turkish</option>
                     <option value="uk">Ukrainian</option>
+                    <option value="hu">Hungarian</option>
                 </select>
             </div>
             <button id="startBtn" class="start-btn">Start Listening</button>
@@ -199,7 +200,13 @@
                 
                 // Connect to Deepgram WebSocket with selected language
                 const selectedLanguage = languageSelect.value;
-                const wsUrl = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&interim_results=true&smart_format=true&language=${selectedLanguage}`;
+                let wsUrl = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&interim_results=true&smart_format=true&language=${selectedLanguage}`;
+                
+                // Use Nova-2 model for Hungarian
+                if (selectedLanguage === 'hu') {
+                    wsUrl += '&model=nova-2';
+                }
+                
                 websocket = new WebSocket(wsUrl, ['token', apiKey]);
                 
                 websocket.onopen = () => {
