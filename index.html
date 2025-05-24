@@ -327,7 +327,7 @@
         .footer {
             margin-top: auto;
             margin-bottom: 0;
-            padding: 20px;
+            padding: 10px 0 20px 0;
             text-align: center;
             font-size: 14px;
             color: var(--status-color);
@@ -335,11 +335,11 @@
             width: 100%;
         }
         [data-theme="dark"] .footer {
-            background-color: #2a1a1a;
+            background-color: #1f1f1f;
         }
         @media (prefers-color-scheme: dark) {
             :root:not([data-theme]) .footer {
-                background-color: #2a1a1a;
+                background-color: #1f1f1f;
             }
         }
         .footer a {
@@ -420,10 +420,12 @@
     </div>
 
     <footer class="footer">
-        <section>
-          © 2023 -2025 <a href="https://zansara.dev">Sara Zan</a>·
-          Powered by <a href="https://deepgram.com/" target="_blank" rel="noopener">Deepgram</a> &amp; <a href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener">Claude Code</a>.
-        </section>
+        <p>
+          © 2023 - <span id="currentYear">2025</span> <a href="https://zansara.dev">Sara Zan</a>.
+        </p>
+        <p>
+        Powered by <a href="https://deepgram.com/" target="_blank" rel="noopener">Deepgram</a> &amp; <a href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener">Claude Code</a>.
+        </p>
       </footer>
 
     <script>
@@ -526,6 +528,9 @@
         
         // Initialize theme on page load
         initializeTheme();
+        
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
         
         // Modal functions
         function openModal() {
