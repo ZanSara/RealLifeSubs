@@ -1,3 +1,5 @@
-# RealLifeSubs
+# Real Life Subtitles
 
-Needs to run from a web server due to its usage of websockets. Run `python -m http.server 8777`.
+See it in action at [https://zansara.dev/real-life-subtitles]! You'll need a Deepgram API key.
+
+If run locally, needs to run from a web server due to its usage of websockets. For example, run `python -m http.server 8000`.
